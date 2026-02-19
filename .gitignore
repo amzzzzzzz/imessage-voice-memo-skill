@@ -1,0 +1,21 @@
+# Environment files (contain secrets)
+.env
+*.env
+
+# Temp audio files
+tmp/
+*.mp3
+*.caf
+*.m4a
+*.wav
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
