@@ -139,9 +139,6 @@ echo "✅ CAF: ${CAF_SIZE} bytes"
 
 echo "📱 Sending to $RECIPIENT..."
 
-# URL encode the password for special characters
-PASSWORD_ENC=$(printf '%s' "$BLUEBUBBLES_PASSWORD" | xxd -plain | tr -d '\n' | sed 's/\(..\)/%\1/g')
-
 # CRITICAL: chatGuid format is "any;-;+PHONE" NOT "iMessage;-;+PHONE"
 # The "any" prefix works; "iMessage" causes issues
 CHAT_GUID="any;-;$RECIPIENT"
@@ -151,7 +148,8 @@ CHAT_GUID="any;-;$RECIPIENT"
 # - isAudioMessage=true (REQUIRED)
 # - type=audio/x-caf on attachment
 # - Pre-converted Opus CAF (don't let BlueBubbles convert)
-RESPONSE=$(curl -X POST "$BLUEBUBBLES_URL/api/v1/message/attachment?password=$PASSWORD_ENC" \
+RESPONSE=$(curl -X POST "$BLUEBUBBLES_URL/api/v1/message/attachment" \
+    -H "Authorization: Bearer $BLUEBUBBLES_PASSWORD" \
     -F "attachment=@$CAF_FILE;type=audio/x-caf" \
     --form-string "chatGuid=$CHAT_GUID" \
     -F "name=voice.caf" \

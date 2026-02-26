@@ -2,7 +2,7 @@
 name: voice-memo
 description: "Send native iMessage voice bubbles with ElevenLabs TTS via BlueBubbles. Use when: user asks to send a voice message, wants something spoken aloud, storytelling or summaries requested, or voice delivery would be more engaging than text. Requires ElevenLabs API key and BlueBubbles."
 homepage: https://github.com/amzzzzzzz/imessage-voice-memo-skill
-metadata: { "openclaw": { "emoji": "🎙️", "requires": { "bins": ["curl", "ffmpeg", "python3"] } } }
+metadata: { "openclaw": { "emoji": "🎙️", "requires": { "bins": ["curl", "ffmpeg", "python3"] }, "credentials": ["BLUEBUBBLES_PASSWORD", "ELEVENLABS_API_KEY"] } }
 ---
 
 # Voice Memo
