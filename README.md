@@ -9,15 +9,16 @@ Send **native iMessage voice bubbles** (not file attachments) via BlueBubbles.
 ## Features
 
 - 🎤 **Native voice bubbles** — Appears with waveform, tap to play (not as file attachment)
-- 🗣️ **ElevenLabs TTS** — Natural-sounding voice synthesis
-- ⚡ **Fast** — End-to-end in ~0.4 seconds
+- 🗣️ **OpenClaw TTS personas** — Uses your active `messages.tts.persona` by default
+- 🔊 **Gemini/Kore + ElevenLabs support** — Google Gemini TTS for the current Amz voice, ElevenLabs as fallback/back-compat
+- ⚡ **Fast enough for voice notes** — Keeps native iMessage voice-bubble delivery while letting the TTS provider vary
 - 🔄 **Bidirectional** — Send and receive voice memos via iMessage
 
 ## Requirements
 
 - **macOS** (for `afconvert`)
 - **BlueBubbles Server** running locally with **Private API enabled**
-- **ElevenLabs API key** (for TTS)
+- **Google Gemini API key** (`GEMINI_API_KEY` or `GOOGLE_API_KEY`) for OpenClaw/Gemini TTS, or **ElevenLabs API key** for ElevenLabs fallback
 
 ## Installation
 
@@ -34,8 +35,10 @@ cp -r . ~/.openclaw/workspace/skills/voice-memo-imessage/
 
 3. Add required environment variables to `~/.openclaw/.env`:
 ```bash
-ELEVENLABS_API_KEY=your-key-here
+GEMINI_API_KEY=your-gemini-key-here
 BLUEBUBBLES_PASSWORD=your-bluebubbles-password
+# Optional ElevenLabs fallback:
+# ELEVENLABS_API_KEY=your-key-here
 ```
 
 4. Make the script executable:
@@ -60,9 +63,9 @@ The agent can invoke this skill to send voice responses.
 After extensive debugging, we discovered the exact parameters needed for native voice bubbles:
 
 ```bash
-# 1. Generate TTS (ElevenLabs)
-curl -X POST "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}" \
-  -d '{"text": "...", "model_id": "eleven_turbo_v2_5"}'
+# 1. Generate TTS
+# Default: read ~/.openclaw/openclaw.json and use messages.tts.provider/persona
+# Current Amz config: Google Gemini TTS + Kore + persona prompt
 
 # 2. Convert to Opus CAF @ 24kHz (REQUIRED format for iMessage)
 afconvert input.mp3 output.caf -f caff -d opus@24000 -c 1
@@ -91,10 +94,12 @@ BlueBubbles' built-in conversion uses **PCM @ 44.1kHz**, but iMessage voice memo
 
 | Step | Time | Notes |
 |------|------|-------|
-| TTS | ~0.25s | ElevenLabs turbo model |
+| Step | Time | Notes |
+|------|------|-------|
+| TTS | provider-dependent | Gemini/OpenClaw persona by default; ElevenLabs fallback supported |
 | Convert | ~0.04s | Native macOS afconvert |
 | Send | ~0.15s | Local BlueBubbles API |
-| **Total** | **~0.4s** | 🚀 |
+| **Total** | provider-dependent | Still optimized around local BlueBubbles + native conversion |
 
 ## Configuration
 
@@ -102,27 +107,39 @@ BlueBubbles' built-in conversion uses **PCM @ 44.1kHz**, but iMessage voice memo
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `ELEVENLABS_API_KEY` | Yes | - | Your ElevenLabs API key |
 | `BLUEBUBBLES_PASSWORD` | Yes | - | BlueBubbles server password |
-| `ELEVENLABS_VOICE_ID` | No | `21m00Tcm4TlvDq8ikWAM` | Voice ID (default: Rachel) |
-| `ELEVENLABS_MODEL_ID` | No | `eleven_turbo_v2_5` | TTS model |
+| `VOICE_MEMO_TTS_PROVIDER` | No | `openclaw` | `openclaw`, `google`, or `elevenlabs` |
+| `OPENCLAW_CONFIG_PATH` | No | `~/.openclaw/openclaw.json` | Config to read `messages.tts` from |
+| `VOICE_MEMO_TTS_PERSONA` | No | active OpenClaw persona | Override persona id, e.g. `amz` |
+| `GEMINI_API_KEY` / `GOOGLE_API_KEY` | For Google | - | Gemini TTS API key |
+| `GOOGLE_TTS_MODEL` | No | OpenClaw/default | Override Gemini TTS model |
+| `GOOGLE_TTS_VOICE` | No | OpenClaw/default | Override Gemini voice, e.g. `Kore` |
+| `ELEVENLABS_API_KEY` | For ElevenLabs | - | ElevenLabs API key fallback |
+| `ELEVENLABS_VOICE_ID` | No | `21m00Tcm4TlvDq8ikWAM` | ElevenLabs voice ID |
+| `ELEVENLABS_MODEL_ID` | No | `eleven_turbo_v2_5` | ElevenLabs model |
 | `BLUEBUBBLES_URL` | No | `http://127.0.0.1:1234` | BlueBubbles server URL |
+| `VOICE_MEMO_DRY_RUN` | No | `0` | `1` generates/converts audio but does not send |
 
 ### Voice Options
 
-Default voice is **Rachel** — a natural, expressive female voice. You can use any ElevenLabs voice by changing `ELEVENLABS_VOICE_ID`.
+Default mode is **OpenClaw persona-aware**: the script reads `messages.tts` from `~/.openclaw/openclaw.json`, including the active `persona` and provider-specific voice settings. For our current Amz setup, that means **Google Gemini TTS + Kore + the `amz` persona prompt**.
 
-**Expressive tags** (for emotional delivery):
-- `[laughs]` — Natural laughter
-- `[sighs]` — Expressive sigh  
-- `[excited]` — Energetic delivery
+To force providers:
 
-Example: `"[excited] Oh my god, it worked!"`
+```bash
+VOICE_MEMO_TTS_PROVIDER=google ./send-voice-memo.sh "Hey girl hey" +1234567890
+VOICE_MEMO_TTS_PROVIDER=elevenlabs ./send-voice-memo.sh "Fallback test" +1234567890
+```
+
+To test without sending an iMessage:
+
+```bash
+VOICE_MEMO_DRY_RUN=1 ./send-voice-memo.sh "Tiny voice test" +1234567890
+```
 
 ## Cost
 
-- ~$0.04 per 30-second voice memo (ElevenLabs)
-- 10 messages/day ≈ $12/month
+Cost depends on the active TTS provider. Gemini TTS is preferred for Amz because it matches Call Amz v2 and avoids ElevenLabs subscription requirements. ElevenLabs fallback still works when a paid ElevenLabs API plan is active.
 
 ## Troubleshooting
 

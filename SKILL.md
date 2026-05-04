@@ -1,6 +1,6 @@
 # Voice Memo iMessage Skill
 
-Send native iMessage voice bubbles via BlueBubbles + ElevenLabs TTS.
+Send native iMessage voice bubbles via BlueBubbles + OpenClaw TTS personas.
 
 **Status:** ✅ Working
 
@@ -12,20 +12,33 @@ Send native iMessage voice bubbles via BlueBubbles + ElevenLabs TTS.
 ./send-voice-memo.sh "Hey, how are you?" +1234567890
 ```
 
+By default, the script reads `~/.openclaw/openclaw.json` and uses the active `messages.tts.provider` + `messages.tts.persona`. For Amz, that currently means Google Gemini TTS voice `Kore` with the `amz` persona prompt.
+
 ---
 
 ## Requirements
 
 - macOS (for `afconvert`)
 - BlueBubbles with Private API enabled
-- ElevenLabs API key
+- BlueBubbles password
+- `GEMINI_API_KEY` / `GOOGLE_API_KEY` for Gemini TTS, or `ELEVENLABS_API_KEY` for ElevenLabs fallback
 
 ## Environment Variables
 
 Required in `~/.openclaw/.env`:
+
 ```bash
-ELEVENLABS_API_KEY=your-key
+GEMINI_API_KEY=your-gemini-key
 BLUEBUBBLES_PASSWORD=your-password
+```
+
+Optional:
+
+```bash
+VOICE_MEMO_TTS_PROVIDER=openclaw   # openclaw|google|elevenlabs
+VOICE_MEMO_TTS_PERSONA=amz         # override OpenClaw active persona
+VOICE_MEMO_DRY_RUN=1               # generate/convert but do not send
+ELEVENLABS_API_KEY=your-key        # fallback provider only
 ```
 
 ---
@@ -33,7 +46,7 @@ BLUEBUBBLES_PASSWORD=your-password
 ## The Working Formula
 
 ```bash
-# 1. TTS → MP3
+# 1. TTS via OpenClaw persona config (Gemini/Kore by default for Amz)
 # 2. Convert: afconvert -f caff -d opus@24000 -c 1
 # 3. Send with:
 #    - chatGuid: any;-;+PHONE (NOT iMessage;-;)
@@ -43,12 +56,6 @@ BLUEBUBBLES_PASSWORD=your-password
 
 ---
 
-## Performance
-
-~0.4 seconds end-to-end.
-
----
-
 ## Cost
 
-~$0.04 per 30-second message (ElevenLabs).
+Depends on active TTS provider. Gemini TTS is now preferred for Amz because it matches Call Amz v2 and avoids ElevenLabs subscription requirements.
